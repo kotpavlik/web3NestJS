@@ -26,9 +26,9 @@ import { UserSchemaType } from './user.model';
 import { UserLoginDto, UserSignUpDto } from '../app/user.dto';
 import { HashpasswordService } from 'src/features/hashpassword/hashpassword.service';
 import { User } from '../app/user.model';
-import { Model } from 'mongoose';
-import { ResponseType } from './types/respType';
-import { Sessions, SessionsSchemaType } from 'src/sessions/session.model';
+import { Model, Types } from 'mongoose';
+import { ResponseType, TokensType } from './types/respType';
+import { Sessions } from 'src/sessions/session.model';
 import { SessionsService } from 'src/sessions/sessions.service';
 import { JWToken } from 'src/features/jwt/jwt.token';
 import { MailService } from 'src/mailActivation/mail.service';
@@ -40,11 +40,11 @@ export declare class AppService {
     private UserModel;
     private SessionsModel;
     constructor(HashpasswordService: HashpasswordService, MailService: MailService, JWToken: JWToken, sessionsService: SessionsService, UserModel: Model<User>, SessionsModel: Model<Sessions>);
-    signUp(userDto: UserSignUpDto): Promise<ResponseType<UserSchemaType, SessionsSchemaType>>;
-    login(userDto: UserLoginDto): Promise<ResponseType<UserSchemaType, SessionsSchemaType>>;
+    signUp(userDto: UserSignUpDto): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>>;
+    login(userDto: UserLoginDto): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>>;
     activate(activaitionLink: string): Promise<void>;
     logout(sessionID: string): Promise<import("mongoose").Document<unknown, {}, Sessions> & Sessions & {
-        _id: import("mongoose").Types.ObjectId;
+        _id: Types.ObjectId;
     }>;
     googleLogin(req: Request & {
         user: any;

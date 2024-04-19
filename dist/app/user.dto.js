@@ -25,6 +25,8 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: 'pasword123', description: 'user password' }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MinLength)(3),
+    (0, class_validator_1.MaxLength)(32),
     __metadata("design:type", String)
 ], UserSignUpDto.prototype, "password", void 0);
 __decorate([

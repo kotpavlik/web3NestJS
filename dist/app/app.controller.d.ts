@@ -12,7 +12,7 @@ export declare class AppController {
     } & {
         sessionID: string;
     }): Promise<void | Response<any, Record<string, any>>>;
-    Activate(res: Response, req: Request, link: string): Promise<void>;
+    Activate(res: Response, req: Request, link: string): Promise<void | Response<any, Record<string, any>>>;
     googleAuth(req: any): Promise<void>;
     googleAuthRedirect(req: any): Promise<"No user from google" | {
         message: string;

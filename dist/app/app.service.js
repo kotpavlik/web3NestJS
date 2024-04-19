@@ -46,9 +46,10 @@ let AppService = class AppService {
         }
         const user = await this.UserModel.create(dataWithHashPass);
         await this.MailService.sendActivationMail(user.email, `${process.env.API_URL}/v1/activate/${user.activaitionLink}`);
-        const generatetoken = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
-        const session = await this.sessionsService.saveToken(user._id, generatetoken.refreshToken);
-        const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, session, user, };
+        const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
+        const session = await this.sessionsService.saveToken(user._id, token.refreshToken);
+        const session_id = session._id;
+        const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, user, session_id, token };
         return response_signup;
     }
     async login(userDto) {
@@ -63,9 +64,11 @@ let AppService = class AppService {
         if (!user || user.password !== calcHashPass) {
             throw new common_1.HttpException('incorrect password', common_1.HttpStatus.BAD_REQUEST);
         }
-        const session = await this.SessionsModel.create({ user_id: user._id });
-        const session_created = { message: `Welcome ❤️‍🔥 ${user.name} `, session, user };
-        return session_created;
+        const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
+        const session = await this.sessionsService.saveToken(user._id, token.refreshToken);
+        const session_id = session._id;
+        const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, token };
+        return response_login;
     }
     async activate(activaitionLink) {
         const user = await this.UserModel.findOne({ activaitionLink });

@@ -3,9 +3,9 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { UserLoginDto, UserSignUpDto } from '../app/user.dto';
 import { HashpasswordService } from 'src/features/hashpassword/hashpassword.service';
 import { User } from '../app/user.model';
-import { Model } from 'mongoose';
+import { Model, ObjectId, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { ResponseType } from './types/respType';
+import { ResponseType, TokensType } from './types/respType';
 import { Sessions, SessionsSchemaType } from 'src/sessions/session.model';
 import { v4 as uuidv4 } from 'uuid';
 import { SessionsService } from 'src/sessions/sessions.service';
@@ -26,7 +26,7 @@ export class AppService {
     @InjectModel(User.name) private UserModel: Model<User>, @InjectModel(Sessions.name) private SessionsModel: Model<Sessions>) { }
 
 
-  async signUp(userDto: UserSignUpDto): Promise<ResponseType<UserSchemaType, SessionsSchemaType>> {
+  async signUp(userDto: UserSignUpDto): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>> {
 
     const hashPass = await this.HashpasswordService.hashPassword(userDto.password)
     const activaitionLink = uuidv4()
@@ -38,18 +38,18 @@ export class AppService {
       return email_validate_resp
     }
 
-
     const user = await this.UserModel.create(dataWithHashPass)
     await this.MailService.sendActivationMail(user.email, `${process.env.API_URL}/v1/activate/${user.activaitionLink}`)
 
-    const generatetoken = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
-    const session = await this.sessionsService.saveToken(user._id, generatetoken.refreshToken)
-    const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, session, user, }
+    const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
+    const session = await this.sessionsService.saveToken(user._id, token.refreshToken)
+    const session_id = session._id
+    const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, user, session_id, token }
     return response_signup
   }
 
 
-  async login(userDto: UserLoginDto): Promise<ResponseType<UserSchemaType, SessionsSchemaType>> {
+  async login(userDto: UserLoginDto): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>> {
     const { email } = userDto
     const [user] = await this.UserModel.find({
       email
@@ -62,9 +62,12 @@ export class AppService {
     if (!user || user.password !== calcHashPass) {
       throw new HttpException('incorrect password', HttpStatus.BAD_REQUEST)
     }
-    const session = await this.SessionsModel.create({ user_id: user._id })
-    const session_created = { message: `Welcome ❤️‍🔥 ${user.name} `, session, user }
-    return session_created
+    const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
+    const session = await this.sessionsService.saveToken(user._id, token.refreshToken)
+    const session_id = session._id
+    const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, token }
+
+    return response_login
   }
 
   async activate(activaitionLink: string) {

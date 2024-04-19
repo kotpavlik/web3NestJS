@@ -28,7 +28,7 @@ let AppController = class AppController {
     async SignUp(dto, res) {
         try {
             const session_resp_data = await this.AppService.signUp(dto);
-            return res.cookie("refreshToken", session_resp_data.session && session_resp_data.session.refreshToken, {
+            return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refresh_token, {
                 httpOnly: true,
                 maxAge: 30 * 24 * 60 * 60 * 1000,
                 secure: true
@@ -46,7 +46,7 @@ let AppController = class AppController {
     async Login(dto, res) {
         try {
             const session_resp_data = await this.AppService.login(dto);
-            return res.cookie("sessionId", session_resp_data.session && session_resp_data.session._id, {
+            return res.cookie("sessionId", session_resp_data.tokens && session_resp_data.tokens.refresh_token, {
                 httpOnly: true,
                 sameSite: 'none',
                 maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -84,10 +84,15 @@ let AppController = class AppController {
     async Activate(res, req, link) {
         try {
             await this.AppService.activate(link);
-            console.log(1);
             return res.redirect(process.env.USER_URL);
         }
         catch (e) {
+            if (e instanceof common_1.HttpException) {
+                return res.status(e.getStatus()).json({ error: e.getResponse() });
+            }
+            else {
+                return res.status(500).json({ error: e.message });
+            }
         }
     }
     async googleAuth(req) { }
