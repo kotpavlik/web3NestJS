@@ -46,10 +46,10 @@ let AppService = class AppService {
         }
         const user = await this.UserModel.create(dataWithHashPass);
         await this.MailService.sendActivationMail(user.email, `${process.env.API_URL}/v1/activate/${user.activaitionLink}`);
-        const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
-        const session = await this.sessionsService.saveToken(user._id, token.refreshToken);
+        const tokens = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
+        const session = await this.sessionsService.saveToken(user._id, tokens.refreshToken);
         const session_id = session._id;
-        const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, user, session_id, token };
+        const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, user, session_id, tokens };
         return response_signup;
     }
     async login(userDto) {
@@ -64,10 +64,10 @@ let AppService = class AppService {
         if (!user || user.password !== calcHashPass) {
             throw new common_1.HttpException('incorrect password', common_1.HttpStatus.BAD_REQUEST);
         }
-        const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
-        const session = await this.sessionsService.saveToken(user._id, token.refreshToken);
+        const tokens = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
+        const session = await this.sessionsService.saveToken(user._id, tokens.refreshToken);
         const session_id = session._id;
-        const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, token };
+        const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, tokens };
         return response_login;
     }
     async activate(activaitionLink) {
@@ -78,12 +78,26 @@ let AppService = class AppService {
         user.isActivated = true;
         await user.save();
     }
-    async logout(sessionID) {
-        if (!sessionID) {
-            throw new common_1.HttpException('We can`t stop session because this session not founded ', common_1.HttpStatus.CONFLICT);
-        }
-        const deleted_session = await this.SessionsModel.findByIdAndDelete(sessionID);
+    async logout(refreshToken) {
+        const deleted_session = await this.sessionsService.removeToken(refreshToken);
         return deleted_session;
+    }
+    async refresh(refreshToken) {
+        if (!refreshToken) {
+            throw new common_1.HttpException('Unautjorized user, login pls 😌', common_1.HttpStatus.UNAUTHORIZED);
+        }
+        const userData = this.sessionsService.validateRefreshToken(refreshToken);
+        const tokenfromDB = this.sessionsService.findToken(refreshToken);
+        if (!userData || !tokenfromDB) {
+            throw new common_1.HttpException('Unautjorized user, login pls 😌', common_1.HttpStatus.UNAUTHORIZED);
+        }
+        const userId = userData.id;
+        const user = await this.UserModel.findById(userId);
+        const tokens = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id });
+        const session = await this.sessionsService.saveToken(user._id, tokens.refreshToken);
+        const session_id = session._id;
+        const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, tokens };
+        return response_login;
     }
     async googleLogin(req) {
         if (!req.user) {

@@ -7,6 +7,6 @@ export type ResponseType<D, T, S> = {
     tokens?: TokensType;
 };
 export type TokensType = {
-    refresh_token: string;
-    access_token: string;
+    accessToken: string;
+    refreshToken: string;
 };

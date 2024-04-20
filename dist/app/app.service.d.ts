@@ -43,9 +43,10 @@ export declare class AppService {
     signUp(userDto: UserSignUpDto): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>>;
     login(userDto: UserLoginDto): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>>;
     activate(activaitionLink: string): Promise<void>;
-    logout(sessionID: string): Promise<import("mongoose").Document<unknown, {}, Sessions> & Sessions & {
+    logout(refreshToken: string): Promise<import("mongoose").Document<unknown, {}, Sessions> & Sessions & {
         _id: Types.ObjectId;
     }>;
+    refresh(refreshToken: string): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>>;
     googleLogin(req: Request & {
         user: any;
     }): Promise<"No user from google" | {

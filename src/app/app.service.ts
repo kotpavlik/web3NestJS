@@ -41,10 +41,11 @@ export class AppService {
     const user = await this.UserModel.create(dataWithHashPass)
     await this.MailService.sendActivationMail(user.email, `${process.env.API_URL}/v1/activate/${user.activaitionLink}`)
 
-    const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
-    const session = await this.sessionsService.saveToken(user._id, token.refreshToken)
+    const tokens: TokensType = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
+
+    const session = await this.sessionsService.saveToken(user._id, tokens.refreshToken)
     const session_id = session._id
-    const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, user, session_id, token }
+    const response_signup = { message: `Welcome ❤️‍🔥 ${user.name} `, user, session_id, tokens }
     return response_signup
   }
 
@@ -62,10 +63,10 @@ export class AppService {
     if (!user || user.password !== calcHashPass) {
       throw new HttpException('incorrect password', HttpStatus.BAD_REQUEST)
     }
-    const token = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
-    const session = await this.sessionsService.saveToken(user._id, token.refreshToken)
+    const tokens = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
+    const session = await this.sessionsService.saveToken(user._id, tokens.refreshToken)
     const session_id = session._id
-    const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, token }
+    const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, tokens }
 
     return response_login
   }
@@ -81,12 +82,29 @@ export class AppService {
 
   }
 
-  async logout(sessionID: string) {
-    if (!sessionID) {
-      throw new HttpException('We can`t stop session because this session not founded ', HttpStatus.CONFLICT)
-    }
-    const deleted_session = await this.SessionsModel.findByIdAndDelete(sessionID)
+  async logout(refreshToken: string) {
+    const deleted_session = await this.sessionsService.removeToken(refreshToken)
     return deleted_session
+  }
+
+  async refresh(refreshToken: string): Promise<ResponseType<UserSchemaType, Types.ObjectId, TokensType>> {
+
+    if (!refreshToken) {
+      throw new HttpException('Unautjorized user, login pls 😌', HttpStatus.UNAUTHORIZED)
+    }
+    const userData = this.sessionsService.validateRefreshToken(refreshToken)
+    const tokenfromDB = this.sessionsService.findToken(refreshToken)
+    if (!userData || !tokenfromDB) {
+      throw new HttpException('Unautjorized user, login pls 😌', HttpStatus.UNAUTHORIZED)
+    }
+    const userId = userData.id
+    const user = await this.UserModel.findById(userId)
+    const tokens = this.JWToken.generateToken({ email: user.email, isActivated: user.isActivated, id: user._id })
+    const session = await this.sessionsService.saveToken(user._id, tokens.refreshToken)
+    const session_id = session._id
+    const response_login = { message: `Welcome ❤️‍🔥 ${user.name} `, session_id, user, tokens }
+    return response_login
+
   }
 
 

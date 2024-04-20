@@ -13,6 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppController = void 0;
+const sessions_service_1 = require("../sessions/sessions.service");
 const session_model_1 = require("./../sessions/session.model");
 const common_1 = require("@nestjs/common");
 const user_dto_1 = require("../app/user.dto");
@@ -22,13 +23,14 @@ const passport_1 = require("@nestjs/passport");
 const dotenv = require("dotenv");
 dotenv.config();
 let AppController = class AppController {
-    constructor(AppService) {
+    constructor(AppService, SessionsService) {
         this.AppService = AppService;
+        this.SessionsService = SessionsService;
     }
     async SignUp(dto, res) {
         try {
             const session_resp_data = await this.AppService.signUp(dto);
-            return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refresh_token, {
+            return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refreshToken, {
                 httpOnly: true,
                 maxAge: 30 * 24 * 60 * 60 * 1000,
                 secure: true
@@ -46,7 +48,7 @@ let AppController = class AppController {
     async Login(dto, res) {
         try {
             const session_resp_data = await this.AppService.login(dto);
-            return res.cookie("sessionId", session_resp_data.tokens && session_resp_data.tokens.refresh_token, {
+            return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refreshToken, {
                 httpOnly: true,
                 sameSite: 'none',
                 maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -62,14 +64,32 @@ let AppController = class AppController {
             }
         }
     }
+    async Refresh(res, req) {
+        try {
+            const { refreshToken } = req.cookies;
+            const session_resp_data = await this.AppService.refresh(refreshToken);
+            return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refreshToken, {
+                httpOnly: true,
+                sameSite: 'none',
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                secure: true
+            }).status(201).json(session_resp_data);
+        }
+        catch (e) {
+            if (e instanceof common_1.HttpException) {
+                return res.status(e.getStatus()).json({ error: e.getResponse() });
+            }
+            else {
+                return res.status(500).json({ error: e.message });
+            }
+        }
+    }
     async Logout(res, req) {
         try {
-            if (!req.user) {
-                return res.redirect("/");
-            }
-            const clear_session = await this.AppService.logout(req.sessionID);
+            const { refreshToken } = req.cookies;
+            const clear_session = await this.AppService.logout(refreshToken);
             if (clear_session) {
-                res.clearCookie("sessionId").json(req.user);
+                res.clearCookie("refreshToken").json(clear_session);
             }
         }
         catch (e) {
@@ -125,6 +145,15 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AppController.prototype, "Login", null);
 __decorate([
+    (0, swagger_1.ApiOperation)({ summary: 'Refresh token' }),
+    (0, common_1.Get)('refresh'),
+    __param(0, (0, common_1.Res)()),
+    __param(1, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AppController.prototype, "Refresh", null);
+__decorate([
     (0, swagger_1.ApiOperation)({ summary: 'User logout' }),
     (0, common_1.Get)('logout'),
     __param(0, (0, common_1.Res)()),
@@ -162,6 +191,6 @@ __decorate([
 exports.AppController = AppController = __decorate([
     (0, swagger_1.ApiTags)('Auth User'),
     (0, common_1.Controller)(''),
-    __metadata("design:paramtypes", [app_service_1.AppService])
+    __metadata("design:paramtypes", [app_service_1.AppService, sessions_service_1.SessionsService])
 ], AppController);
 //# sourceMappingURL=app.controller.js.map

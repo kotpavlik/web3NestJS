@@ -19,11 +19,36 @@ const mongoose_1 = require("mongoose");
 const user_model_1 = require("../app/user.model");
 const mongoose_2 = require("@nestjs/mongoose");
 const jwt_token_1 = require("../features/jwt/jwt.token");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+dotenv.config();
 let SessionsService = class SessionsService {
     constructor(JWToken, UserModel, SessionsModel) {
         this.JWToken = JWToken;
         this.UserModel = UserModel;
         this.SessionsModel = SessionsModel;
+    }
+    validateAccessToken(token) {
+        try {
+            const userData = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            return userData;
+        }
+        catch (e) {
+            return null;
+        }
+    }
+    validateRefreshToken(token) {
+        try {
+            const userData = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+            return userData;
+        }
+        catch (e) {
+            return null;
+        }
+    }
+    async findToken(refreshToken) {
+        const findTokenData = await this.SessionsModel.findOne({ refreshToken });
+        return findTokenData;
     }
     async saveToken(user_id, refreshToken) {
         try {
@@ -36,6 +61,16 @@ let SessionsService = class SessionsService {
             }
             const token = await this.SessionsModel.create({ user_id, refreshToken });
             return token;
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+    async removeToken(refreshToken) {
+        try {
+            const find_session = await this.SessionsModel.findOne({ refreshToken });
+            const remove_session = await this.SessionsModel.findByIdAndDelete({ _id: find_session._id });
+            return remove_session;
         }
         catch (e) {
             console.log(e);

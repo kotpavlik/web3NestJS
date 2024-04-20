@@ -1,10 +1,10 @@
+import { SessionsService } from 'src/sessions/sessions.service';
 import { Sessions } from './../sessions/session.model';
 import { Body, Controller, Get, HttpException, Post, Req, Res, UsePipes, ValidationPipe, UseGuards, Param } from '@nestjs/common';
 import { UserLoginDto, UserSignUpDto } from '../app/user.dto';
 import { Response, Request } from 'express';
 import { AppService } from './app.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { User } from './user.model';
 import { AuthGuard } from '@nestjs/passport';
 import * as dotenv from 'dotenv';
 
@@ -14,7 +14,7 @@ dotenv.config()
 @ApiTags('Auth User')
 @Controller('')
 export class AppController {
-  constructor(private readonly AppService: AppService) { }
+  constructor(private readonly AppService: AppService, private readonly SessionsService: SessionsService) { }
 
 
   @ApiOperation({ summary: 'Create new user' })
@@ -24,7 +24,7 @@ export class AppController {
   async SignUp(@Body() dto: UserSignUpDto, @Res() res: Response) {
     try {
       const session_resp_data = await this.AppService.signUp(dto)
-      return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refresh_token, {
+      return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refreshToken, {
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000,
         secure: true
@@ -46,7 +46,7 @@ export class AppController {
   async Login(@Body() dto: UserLoginDto, @Res() res: Response) {
     try {
       const session_resp_data = await this.AppService.login(dto)
-      return res.cookie("sessionId", session_resp_data.tokens && session_resp_data.tokens.refresh_token, {
+      return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refreshToken, {
         httpOnly: true,
         sameSite: 'none',
         maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -60,26 +60,45 @@ export class AppController {
       }
     }
   }
+  @ApiOperation({ summary: 'Refresh token' })
+  @Get('refresh')
+  async Refresh(@Res() res: Response, @Req() req: Request) {
+    try {
+      const { refreshToken } = req.cookies;
+      const session_resp_data = await this.AppService.refresh(refreshToken)
+      return res.cookie("refreshToken", session_resp_data.tokens && session_resp_data.tokens.refreshToken, {
+        httpOnly: true,
+        sameSite: 'none',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        secure: true
+      }).status(201).json(session_resp_data)
+    } catch (e) {
+      if (e instanceof HttpException) {
+        return res.status(e.getStatus()).json({ error: e.getResponse() });
+      } else {
+        return res.status(500).json({ error: e.message });
+
+      }
+    }
+  }
 
 
   @ApiOperation({ summary: 'User logout' })
   @Get('logout')
-  async Logout(@Res() res: Response, @Req() req: Request & { user: User } & { sessionID: string }) {
+  async Logout(@Res() res: Response, @Req() req: Request) {
     try {
 
-      if (!req.user) {
-        return res.redirect("/");
-      }
-
-      const clear_session = await this.AppService.logout(req.sessionID)
+      const { refreshToken } = req.cookies;
+      const clear_session = await this.AppService.logout(refreshToken)
       if (clear_session) {
-        res.clearCookie("sessionId").json(req.user);
+        res.clearCookie("refreshToken").json(clear_session);
       }
     } catch (e) {
       if (e instanceof HttpException) {
         return res.status(e.getStatus()).json({ error: e.getResponse() });
       } else {
         return res.status(500).json({ error: e.message });
+
       }
     }
   }
