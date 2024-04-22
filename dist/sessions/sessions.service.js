@@ -16,16 +16,12 @@ exports.SessionsService = void 0;
 const common_1 = require("@nestjs/common");
 const session_model_1 = require("./session.model");
 const mongoose_1 = require("mongoose");
-const user_model_1 = require("../app/user.model");
 const mongoose_2 = require("@nestjs/mongoose");
-const jwt_token_1 = require("../features/jwt/jwt.token");
 const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 dotenv.config();
 let SessionsService = class SessionsService {
-    constructor(JWToken, UserModel, SessionsModel) {
-        this.JWToken = JWToken;
-        this.UserModel = UserModel;
+    constructor(SessionsModel) {
         this.SessionsModel = SessionsModel;
     }
     validateAccessToken(token) {
@@ -80,10 +76,7 @@ let SessionsService = class SessionsService {
 exports.SessionsService = SessionsService;
 exports.SessionsService = SessionsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(1, (0, mongoose_2.InjectModel)(user_model_1.User.name)),
-    __param(2, (0, mongoose_2.InjectModel)(session_model_1.Sessions.name)),
-    __metadata("design:paramtypes", [jwt_token_1.JWToken,
-        mongoose_1.Model,
-        mongoose_1.Model])
+    __param(0, (0, mongoose_2.InjectModel)(session_model_1.Sessions.name)),
+    __metadata("design:paramtypes", [mongoose_1.Model])
 ], SessionsService);
 //# sourceMappingURL=sessions.service.js.map

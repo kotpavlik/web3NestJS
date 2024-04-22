@@ -20,8 +20,14 @@ const sessions_module_1 = require("../sessions/sessions.module");
 const sessions_service_1 = require("../sessions/sessions.service");
 const jwt_token_1 = require("../features/jwt/jwt.token");
 const mail_service_1 = require("../mailActivation/mail.service");
+const auth_middleware_1 = require("../features/middlewares/auth.middleware");
 dotenv.config();
 let AppModule = class AppModule {
+    configure(consumer) {
+        consumer
+            .apply(auth_middleware_1.AuthMiddlewares)
+            .forRoutes('coins');
+    }
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([

@@ -6,7 +6,11 @@ const swagger_1 = require("@nestjs/swagger");
 const cookieParser = require("cookie-parser");
 const PORT = process.env.PORT || 8081;
 async function bootstrap() {
-    const app = await core_1.NestFactory.create(app_module_1.AppModule, { cors: true });
+    const app = await core_1.NestFactory.create(app_module_1.AppModule, {
+        cors: {
+            origin: ['http://localhost:3000', process.env.USER_URL], credentials: true
+        }
+    });
     console.log(`we are listen port ${PORT}`);
     app.use(cookieParser());
     app.setGlobalPrefix('v1');

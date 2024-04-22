@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -11,6 +11,7 @@ import { SessionsModule } from 'src/sessions/sessions.module';
 import { SessionsService } from 'src/sessions/sessions.service';
 import { JWToken } from 'src/features/jwt/jwt.token';
 import { MailService } from 'src/mailActivation/mail.service';
+import { AuthMiddlewares } from 'src/features/middlewares/auth.middleware';
 
 
 
@@ -24,4 +25,10 @@ dotenv.config();
   controllers: [AppController],
   providers: [AppService, HashpasswordService, SessionsService, JWToken, MailService]
 })
-export class AppModule { };
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(AuthMiddlewares)
+      .forRoutes('coins');
+  }
+};

@@ -18,8 +18,6 @@ dotenv.config()
 export class SessionsService {
 
     constructor(
-        private readonly JWToken: JWToken,
-        @InjectModel(User.name) private UserModel: Model<User>,
         @InjectModel(Sessions.name) private SessionsModel: Model<Sessions>,
     ) { }
 
@@ -27,7 +25,7 @@ export class SessionsService {
     validateAccessToken(token: string) {
         try {
             const userData = jwt.verify(token, process.env.JWT_ACCESS_SECRET)
-            return userData;
+            return userData as any;
         } catch (e) {
             return null;
         }
